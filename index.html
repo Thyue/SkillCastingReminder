@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放技能循環計時器</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --success: #28a745;
+            --danger: #ff3b30;
+            --reset: #6e6e73;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .header { 
+            position: sticky; top: 0; z-index: 100;
+            margin-bottom: 20px; text-align: center; 
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%; max-width: 600px;
+            backdrop-filter: blur(5px);
+        }
+        .main-controls { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+        
+        button {
+            border: none; border-radius: 6px; font-weight: bold;
+            cursor: pointer; transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        
+        #globalStart { background-color: var(--success); color: white; padding: 10px 20px; flex: 1; }
+        #globalReset { background-color: var(--reset); color: white; padding: 10px 20px; flex: 1; }
+        #addTimerBtn { background-color: var(--primary); color: white; padding: 10px 15px; }
+
+        .timer-list { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 12px; width: 100%; max-width: 1200px; 
+            margin-top: 10px;
+        }
+        .timer-card {
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative; transition: background-color 0.1s;
+            border-top: 4px solid var(--primary);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .display { 
+            font-size: 3rem; font-weight: 900; color: var(--primary); 
+            line-height: 1; margin: 10px 0; text-align: center;
+        }
+        .input-row { display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center; }
+        .input-line { display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%; }
+        input { border: 1px solid #ddd; border-radius: 4px; padding: 6px; font-size: 0.9rem; text-align: center; }
+        .sec-input { width: 70px; font-weight: bold; }
+        .msg-input { width: 140px; font-weight: 500; color: #333; }
+        
+        .del-btn { position: absolute; top: 5px; right: 8px; background: none; color: #ddd; font-size: 1.2rem; }
+        .alert-bg { background-color: var(--danger) !important; }
+        .alert-bg .display, .alert-bg .msg-input, .alert-bg span { color: white !important; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 style="margin:0; font-size: 1.25rem; color: #333;">放技能循環計時器</h1>
+    <div class="main-controls">
+        <button id="globalStart">🚀 全體啟動</button>
+        <button id="globalReset">🔄 全體重設</button>
+        <button id="addTimerBtn">+ 自訂</button>
+    </div>
+</div>
+
+<div id="timerContainer" class="timer-list"></div>
+
+<script>
+    const container = document.getElementById('timerContainer');
+    const addBtn = document.getElementById('addTimerBtn');
+    const globalStart = document.getElementById('globalStart');
+    const globalReset = document.getElementById('globalReset');
+
+    const presetSkills = [
+        "放雪花了", "放祝福了", "放眼了", "放祈禱了", "放天祝了", 
+        "放激勵了", "放禦魔了", "放聖火了", "放力消了", "放魔消了", 
+        "放速激了", "放幸運了", "放掉落了", "放極速了"
+    ];
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = 5.0; 
+    masterGain.connect(audioCtx.destination);
+
+    let timers = [];
+
+    function playDing() {
+        const osc = audioCtx.createOscillator();
+        const localGain = audioCtx.createGain();
+        osc.connect(localGain);
+        localGain.connect(masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
+        localGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        localGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function speakOnce(text) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        playDing();
+        setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.volume = 1.0;
+            utterance.rate = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }, 300);
+    }
+
+    function createTimer(defaultMsg = "技能好了", defaultSec = 30) {
+        const timerId = Date.now() + Math.random();
+        const card = document.createElement('div');
+        card.className = 'timer-card';
+        card.innerHTML = `
+            <button class="del-btn">✕</button>
+            <div class="display">${defaultSec}</div>
+            <div class="input-row">
+                <div class="input-line">
+                    <input type="text" class="msg-input" value="${defaultMsg}">
+                </div>
+                <div class="input-line">
+                    <input type="number" class="sec-input" value="${defaultSec}" min="0">
+                    <span style="font-size: 0.8rem; color: #999;">秒</span>
+                </div>
+            </div>
+        `;
+
+        const display = card.querySelector('.display');
+        const secInp = card.querySelector('.sec-input');
+        const msgInp = card.querySelector('.msg-input');
+        const delBtn = card.querySelector('.del-btn');
+
+        let timeLeft = defaultSec;
+        let interval = null;
+
+        const timerObj = {
+            id: timerId,
+            start: () => {
+                if (interval) return;
+                
+                // 檢查數值：如果為空或小於等於 0，統一設為 0
+                let val = parseInt(secInp.value);
+                if (isNaN(val) || val <= 0) {
+                    val = 0;
+                    display.textContent = 0;
+                    return; // 0 秒不執行倒數循環
+                }
+
+                secInp.disabled = true;
+                msgInp.disabled = true;
+                timeLeft = val;
+                display.textContent = timeLeft;
+                
+                interval = setInterval(() => {
+                    if (timeLeft > 1) {
+                        timeLeft--;
+                        display.textContent = timeLeft;
+                    } else {
+                        speakOnce(msgInp.value);
+                        card.classList.add('alert-bg');
+                        setTimeout(() => card.classList.remove('alert-bg'), 800);
+                        timeLeft = parseInt(secInp.value) || 0;
+                        display.textContent = timeLeft;
+                    }
+                }, 1000);
+            },
+            reset: () => {
+                clearInterval(interval);
+                interval = null;
+                secInp.disabled = false;
+                msgInp.disabled = false;
+                let val = parseInt(secInp.value);
+                display.textContent = isNaN(val) ? 0 : val;
+                card.classList.remove('alert-bg');
+            }
+        };
+
+        delBtn.addEventListener('click', () => {
+            timerObj.reset();
+            card.remove();
+            timers = timers.filter(t => t.id !== timerId);
+        });
+
+        // 監聽輸入：即時反映到大數字，若為空則顯示 0
+        secInp.addEventListener('input', () => {
+            if (!interval) {
+                let val = parseInt(secInp.value);
+                display.textContent = isNaN(val) ? 0 : val;
+            }
+        });
+
+        timers.push(timerObj);
+        container.appendChild(card);
+    }
+
+    globalStart.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        timers.forEach(t => t.start());
+    });
+
+    globalReset.addEventListener('click', () => {
+        window.speechSynthesis.cancel();
+        timers.forEach(t => t.reset());
+    });
+
+    addBtn.addEventListener('click', () => createTimer("新技能", 0));
+
+    presetSkills.forEach(skill => createTimer(skill, 30));
+</script>
+
+</body>
+</html>
