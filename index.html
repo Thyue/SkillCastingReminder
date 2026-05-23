@@ -14,62 +14,66 @@
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: #f0f2f5;
-            margin: 0; padding: 15px;
+            margin: 0; padding: 10px;
             display: flex; flex-direction: column; align-items: center;
         }
         .header { 
             position: sticky; top: 0; z-index: 100;
-            margin-bottom: 20px; text-align: center; 
+            margin-bottom: 15px; text-align: center; 
             background: rgba(255, 255, 255, 0.95);
-            padding: 10px 20px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 100%; max-width: 600px;
+            padding: 8px 15px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%; max-width: 500px;
             backdrop-filter: blur(5px);
         }
-        .main-controls { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+        .main-controls { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
         
         button {
-            border: none; border-radius: 6px; font-weight: bold;
+            border: none; border-radius: 5px; font-weight: bold;
             cursor: pointer; transition: transform 0.1s, opacity 0.2s;
         }
         button:active { transform: scale(0.95); }
         
-        #globalStart { background-color: var(--success); color: white; padding: 10px 20px; flex: 1; }
-        #globalReset { background-color: var(--reset); color: white; padding: 10px 20px; flex: 1; }
-        #addTimerBtn { background-color: var(--primary); color: white; padding: 10px 15px; }
+        #globalStart { background-color: var(--success); color: white; padding: 8px 16px; font-size: 0.95rem; flex: 1; }
+        #globalReset { background-color: var(--reset); color: white; padding: 8px 16px; font-size: 0.95rem; flex: 1; }
+        #addTimerBtn { background-color: var(--primary); color: white; padding: 8px 12px; font-size: 0.95rem; }
 
         .timer-list { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-            gap: 12px; width: 100%; max-width: 1200px; 
-            margin-top: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 10px; width: 100%; max-width: 1200px; 
         }
         .timer-card {
-            background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            background: white; padding: 8px 12px; border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.06);
             position: relative; transition: background-color 0.1s;
-            border-top: 4px solid var(--primary);
+            border-top: 3px solid var(--primary);
             display: flex; flex-direction: column; align-items: center;
         }
         .display { 
-            font-size: 3rem; font-weight: 900; color: var(--primary); 
-            line-height: 1; margin: 10px 0; text-align: center;
+            font-size: 2.3rem; font-weight: 900; color: var(--primary); 
+            line-height: 1.1; margin: 2px 0 6px 0; text-align: center;
+            font-variant-numeric: tabular-nums;
         }
-        .input-row { display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center; }
-        .input-line { display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%; }
-        input { border: 1px solid #ddd; border-radius: 4px; padding: 6px; font-size: 0.9rem; text-align: center; }
-        .sec-input { width: 70px; font-weight: bold; }
+        .input-row { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
+        .input-line { display: flex; gap: 2px; align-items: center; justify-content: center; width: 100%; }
+        
+        input { border: 1px solid #ddd; border-radius: 3px; padding: 4px; font-size: 0.8rem; text-align: center; }
+        .min-input, .sec-input { width: 35px; font-weight: bold; }
         .msg-input { width: 140px; font-weight: 500; color: #333; }
         
-        .del-btn { position: absolute; top: 5px; right: 8px; background: none; color: #ddd; font-size: 1.2rem; }
+        .unit-text { font-size: 0.75rem; color: #777; margin-right: 2px; }
+        .del-btn { position: absolute; top: 2px; right: 6px; background: none; color: #ddd; font-size: 1rem; }
         .alert-bg { background-color: var(--danger) !important; }
-        .alert-bg .display, .alert-bg .msg-input, .alert-bg span { color: white !important; }
+        .alert-bg .display, .alert-bg .msg-input, .alert-bg .unit-text { color: white !important; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1 style="margin:0; font-size: 1.25rem; color: #333;">放技能循環計時器</h1>
+    <h1 style="margin:0; font-size: 1.1rem; color: #333;">放技能循環計時器</h1>
+    <div style="font-size: 0.7rem; color: #d32f2f; margin-top: 1px;">by 趙德柱</div>
+    
     <div class="main-controls">
         <button id="globalStart">🚀 全體啟動</button>
         <button id="globalReset">🔄 全體重設</button>
@@ -85,10 +89,21 @@
     const globalStart = document.getElementById('globalStart');
     const globalReset = document.getElementById('globalReset');
 
+    // 依照要求客製化的技能清單與對應秒數
     const presetSkills = [
-        "放雪花了", "放祝福了", "放眼了", "放祈禱了", "放天祝了", 
-        "放激勵了", "放禦魔了", "放聖火了", "放力消了", "放魔消了", 
-        "放速激了", "放幸運了", "放掉落了", "放極速了"
+        { msg: "坐牢1小時了", sec: 3600 },
+        { msg: "該放雪花了", sec: 600 },
+        { msg: "該吃章魚燒了", sec: 600 },
+        { msg: "該放祝福了", sec: 900 },
+        { msg: "該放眼了", sec: 300 },
+        { msg: "該放祈禱了", sec: 120 },
+        { msg: "該放天祝了", sec: 200 },
+        { msg: "該放激勵了", sec: 160 },
+        { msg: "該放禦魔了", sec: 300 },
+        { msg: "該放聖火了", sec: 155 },
+        { msg: "該放速激了", sec: 200 },
+        { msg: "該放幸運了", sec: 120 },
+        { msg: "該放極速了", sec: 300 }
     ];
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -106,9 +121,9 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
         localGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
-        localGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        localGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
+        osc.stop(audioCtx.currentTime + 0.2);
     }
 
     function speakOnce(text) {
@@ -120,73 +135,93 @@
             utterance.volume = 1.0;
             utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
-        }, 300);
+        }, 250);
     }
 
-    function createTimer(defaultMsg = "技能好了", defaultSec = 30) {
+    function formatTime(totalSeconds) {
+        if (totalSeconds <= 0) return "00:00";
+        let m = Math.floor(totalSeconds / 60);
+        let s = totalSeconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function createTimer(defaultMsg = "技能好了", totalInitSec = 30) {
         const timerId = Date.now() + Math.random();
         const card = document.createElement('div');
         card.className = 'timer-card';
+        
+        // 換算回分、秒數填入輸入框
+        let defaultMin = Math.floor(totalInitSec / 60);
+        let defaultSec = totalInitSec % 60;
+
         card.innerHTML = `
             <button class="del-btn">✕</button>
-            <div class="display">${defaultSec}</div>
+            <div class="display">${formatTime(totalInitSec)}</div>
             <div class="input-row">
                 <div class="input-line">
                     <input type="text" class="msg-input" value="${defaultMsg}">
                 </div>
-                <div class="input-line">
-                    <input type="number" class="sec-input" value="${defaultSec}" min="0">
-                    <span style="font-size: 0.8rem; color: #999;">秒</span>
+                <div class="input-line" style="margin-top: 2px;">
+                    <input type="number" class="min-input" value="${defaultMin}" min="0">
+                    <span class="unit-text">分</span>
+                    <input type="number" class="sec-input" value="${defaultSec}" min="0" max="59">
+                    <span class="unit-text">秒</span>
                 </div>
             </div>
         `;
 
         const display = card.querySelector('.display');
+        const minInp = card.querySelector('.min-input');
         const secInp = card.querySelector('.sec-input');
         const msgInp = card.querySelector('.msg-input');
         const delBtn = card.querySelector('.del-btn');
 
-        let timeLeft = defaultSec;
+        let timeLeft = totalInitSec;
         let interval = null;
+
+        function getInputValueInSeconds() {
+            let m = parseInt(minInp.value) || 0;
+            let s = parseInt(secInp.value) || 0;
+            return (m * 60) + s;
+        }
 
         const timerObj = {
             id: timerId,
             start: () => {
                 if (interval) return;
                 
-                // 檢查數值：如果為空或小於等於 0，統一設為 0
-                let val = parseInt(secInp.value);
-                if (isNaN(val) || val <= 0) {
-                    val = 0;
-                    display.textContent = 0;
-                    return; // 0 秒不執行倒數循環
+                let totalSec = getInputValueInSeconds();
+                if (totalSec <= 0) {
+                    display.textContent = "00:00";
+                    return;
                 }
 
+                minInp.disabled = true;
                 secInp.disabled = true;
                 msgInp.disabled = true;
-                timeLeft = val;
-                display.textContent = timeLeft;
+                timeLeft = totalSec;
+                display.textContent = formatTime(timeLeft);
                 
                 interval = setInterval(() => {
                     if (timeLeft > 1) {
                         timeLeft--;
-                        display.textContent = timeLeft;
+                        display.textContent = formatTime(timeLeft);
                     } else {
                         speakOnce(msgInp.value);
                         card.classList.add('alert-bg');
                         setTimeout(() => card.classList.remove('alert-bg'), 800);
-                        timeLeft = parseInt(secInp.value) || 0;
-                        display.textContent = timeLeft;
+                        timeLeft = getInputValueInSeconds() || 0;
+                        display.textContent = formatTime(timeLeft);
                     }
                 }, 1000);
             },
             reset: () => {
                 clearInterval(interval);
                 interval = null;
+                minInp.disabled = false;
                 secInp.disabled = false;
                 msgInp.disabled = false;
-                let val = parseInt(secInp.value);
-                display.textContent = isNaN(val) ? 0 : val;
+                display.textContent = formatTime(getInputValueInSeconds());
                 card.classList.remove('alert-bg');
             }
         };
@@ -197,13 +232,13 @@
             timers = timers.filter(t => t.id !== timerId);
         });
 
-        // 監聽輸入：即時反映到大數字，若為空則顯示 0
-        secInp.addEventListener('input', () => {
+        const handleInput = () => {
             if (!interval) {
-                let val = parseInt(secInp.value);
-                display.textContent = isNaN(val) ? 0 : val;
+                display.textContent = formatTime(getInputValueInSeconds());
             }
-        });
+        };
+        minInp.addEventListener('input', handleInput);
+        secInp.addEventListener('input', handleInput);
 
         timers.push(timerObj);
         container.appendChild(card);
@@ -221,7 +256,8 @@
 
     addBtn.addEventListener('click', () => createTimer("新技能", 0));
 
-    presetSkills.forEach(skill => createTimer(skill, 30));
+    // 自動讀取新配置列表並初始化
+    presetSkills.forEach(skill => createTimer(skill.msg, skill.sec));
 </script>
 
 </body>
